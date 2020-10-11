@@ -95,14 +95,15 @@ int bitXor(int x, int y)
 }
 ```
 
-惭愧的说，第一个其实就难住了我，我差不多是凑出的这个结果，之后查了资料得知和摩尔根定律有关，
-具体来说就是
+第一道题很简单，但有意思的是我之后查其他人的做法时，发现大家都说与摩尔根定律有关，即
 
 ```C++
 ~(~x & ~y) == x | y
 ```
 
-而`x | y`和`~x | ~y`的并就是`x ^ y`，即可得到以上结果。
+我并不太明白这里的摩尔根定律是指什么，是单纯的公式还是生物里的那个摩尔根？我没有查到资料。
+
+无论如何，`x | y`和`~x | ~y`的并就是`x ^ y`，即可得到以上结果。
 
 #### isTmax
 
@@ -120,7 +121,7 @@ int isTmax(int x)
 }
 ```
 
-应该说这个很简单，但我开始没有想到可以用`x + x`的方式来表达`x << 1`,因此浪费了不少时间。
+应该说这道题比较简单，但我开始没有想到可以用`x + x`的方式来表达`x << 1`，因此浪费了不少时间。
 
 #### allOddBits
 
@@ -143,8 +144,68 @@ int allOddBits(int x)
 }
 ```
 
-这道题的核心在于用移位和加法来构造出`0xAAAAAAAA`，因为只有这个数是偶数位全为1，奇数位全为0，之后用任意的数和它做且运算，再用结果和它做异或运算即可分辨出两种数字。
+这道题的思路并不复杂，核心在于用移位和加法来构造出`0xAAAAAAAA`，因为只有这个数是偶数位全为1，奇数位全为0，之后用任意的数和它做且运算，再用结果和它做异或运算即可分辨出两种数字。
 由于数字大小限制，我使用了`0xAA`连续左移几次来达成这个目标。
+
+#### isLessOrEqual
+
+```C++
+/*
+ * isLessOrEqual - if x <= y  then return 1, else return 0
+ *   Example: isLessOrEqual(4,5) = 1.
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 24
+ *   Rating: 3
+ */
+int isLessOrEqual(int x, int y)
+{
+    //用于比较x和y的大小
+    int a = ((x + ~y + 1) >> 31) & 0x1;
+    int b = !(x ^ y);
+    //用于处理溢出情况
+    int c = (x >> 31) & 0x1;
+    int d = (y >> 31) & 0x1;
+    //结果
+    return (a | b | c & !d) & !(!c & d);
+}
+```
+
+此题虽然结果比较复杂，但逻辑清晰明了。
+首先易得
+
+```C++
+x + ~y + 1 == x - y;
+```
+
+当`x < y`时，有
+
+```C++
+(x + ~y + 1) >> 31 == 0xFFFFFFFF
+0xFFFFFFFF & 0x1 == 0x1
+!(x ^ y) == 0x0
+0x1 | 0x0 == 0x1
+```
+
+当`x = y`时，有
+
+```C++
+(x + ~y + 1) >> 31 == 0x0
+0x0 & 0x1 == 0x0
+!(x ^ y) == 0x1
+0x0|0x1 == 0x1
+```
+
+当`x > y`时，有
+
+```C++
+(x + ~y + 1) >> 31 == 0x0
+0x0 & 0x1 == 0x0
+!(x ^ y) == 0x0
+0x0 | 0x0 == 0x0
+```
+
+这样就成功地把前两种情况和第三种情况分开。
+c和d相关的操作考虑了两种溢出情况，当x为负数y为正数返回1，当x为正数y为负数返回0。
 
 #### howManyBits
 
@@ -164,8 +225,8 @@ int allOddBits(int x)
 int howManyBits(int x)
 {
     int a, b, c, d, e, f;
-    int sign = x >> 31; //得到1或是0，用于处理负数
-    x = (sign & ~x) | (~sign & x); //
+    int sign = x >> 31; //得到0xFFFFFFFF或是0，用于处理负数
+    x = (sign & ~x) | (~sign & x); //如果是正数将不发生变化，如果是负数将把所有位数全部变为1
     // 开始
     a = !!(x >> 16) << 4;//左边16位是否有1
     x = x >> a;//如果有，则将原数右移16位；若没有则不移动
@@ -180,12 +241,16 @@ int howManyBits(int x)
     e = !!(x >> 1);
     x = x >> e;
     f = x;
-    return a + b + c + d + e + f + 1;//+1表示加上符号位
+    return a + b + c + d + e + f + 1;
 }
 ```
 
-这道题对我来说很复杂，
-总之，我在注释中做了充分的解释
+这道题比较复杂，也不太好用语言表述。
+基本的思路就是取16、8、4、2、1五种区域，然后
+**1. 通过移位判断一段大区域当中是否有1；**
+**2. 判断下一个可能有1的小区域中是否有1；**
+**3. 执行操作1，直到区域已减为1。**
+关于具体过程，我在注释中做了充分的解释。
 
 #### floatScale2
 
@@ -203,33 +268,36 @@ int howManyBits(int x)
  */
 unsigned floatScale2(unsigned uf)
 {
-    unsigned s = uf & 0x80000000;//记录符号位，其余位置0
-    unsigned exp = uf & 0x7f800000;//记录阶码，其余位置0
-    unsigned frac = uf & 0x007fffff;//记录尾数，其余位置0
-    if (!exp) //如果uf的阶码为0
+    unsigned sign = uf & 0x80000000;//记录符号位，其余位置0
+    unsigned exp = uf & 0x7F800000;//记录阶码，其余位置0
+    unsigned frac = uf & 0x007FFFFF;//记录尾数，其余位置0
+    //如果uf的阶码为0，即非规格化值
+    if (!exp)
     {
-        frac <<= 1;
-
-
+        //将frac左移一位，若尾数部分第一位为0，尾数左移一位就相当于乘2，仍然是非规格化数;
+        //若尾数部分第一位为1，左移前为非规格化数，左移后阶码部分由00000000变为
+        //00000001，阶码由-126变为1-127=-126没有任何变化,尾数以二进制小数解释的方式将变为(1+frac)*2
+        //而变为规格化数后尾数被解释为1+frac，最终就是尾数*2，阶码不变。
+        frac = frac << 1;
     }
-    else if (exp ^ 0x7f800000) //如果阶码部分不为全1
+    //如果阶码部分不为全1，即规格化值
+    else if (exp ^ 0x7F800000)
     {
-        exp += 0x00800000;//阶码加1，对于规格化数，相当于乘2
-        if (!(exp ^ 0x7f800000))//如果加1后，阶码为全1，将尾数位全置0，返回值即是无穷大
+        exp += 0x00800000;//阶码加所在位置的'1'，对于规格化数，相当于*2
+        //如果加1后，阶码全为1，则溢出；令尾数等于0，使得返回值为无穷大
+        if (!(exp ^ 0x7F800000))
         {
             frac = 0;
         }
     }
-    /*对于阶码为在本身为全1的NaN，本函数没有对其进行操作，返回原数据，满足关卡要求*/
-    return s | exp | frac;//将符号位，阶码位，尾数位通过按位异或结合起来
+    //对于阶码为在本身为全1的NaN，将会返回原数据，满足此题要求
+    return sign | exp | frac;//对符号位，阶码位，尾数位进行异或运算
 }
 ```
 
-将frac左移一位，若尾数部分第一位为0，左移前后均为非规格化数，
-尾数左移一位就相当于乘2;若尾数部分第一位为1，左移前为非规格化数，
-左移后阶码部分由00000000变为00000001，阶码由1-127=-126(1-Bias)
-变为e-127=1-127=-126(e-Bias),所得数为规格化数，尾数被解释为1+f,
-相当于尾数乘2，阶码不变
+这道题不难，实际上如果熟悉浮点数编码，应当能够很快写出来。
+这道题重要的一点在于**让人理解了为什么要把非规格化值的阶码值设置为1-Bias**
+关于这个我在注释中做了仔细的解释。
 
 #### floatFloat2Int
 
@@ -248,16 +316,18 @@ unsigned floatScale2(unsigned uf)
  */
 int floatFloat2Int(unsigned uf)
 {
-    int sign = (uf >> 31) & 1;
-    //偏执量为127
-    int exp = ((uf >> 23) & 255) - 127;
-    int frac = uf & (~(511 << 23));
-    //溢出过大
+    int sign = uf & 0x80000000;//记录符号位，其余位置0
+    int exp = uf & 0x7F800000;//记录阶码，其余位置0
+    int frac = uf & 0x007FFFFF;//记录尾数，其余位置0
+    //全部移到右边方便计算
+    sign = sign >> 31;
+    exp = (exp >> 23) - 127;
+    //只要超过2^31即溢出
     if (exp > 31)
     {
         return 0x80000000u;
     }
-    //exp小于0
+    //exp小于0,则原数<1,返回0即可
     if (exp < 0)
     {
         return 0;
@@ -268,8 +338,8 @@ int floatFloat2Int(unsigned uf)
     if (exp <= 24)
     {
         frac = frac >> (24 - exp);
-        //大于24，左移
     }
+    //大于24，左移
     else if (exp <= 30)
     {
         frac = frac << (exp - 23);
@@ -282,3 +352,104 @@ int floatFloat2Int(unsigned uf)
     return frac;
 }
 ```
+
+此题同样不复杂，另外不需要考虑非规格化数的情况，因此我们只需要对exp进行几个分段就可以完成了。
+后面根据阶码的大小对frac进行移动需要一番思考，但通过看书和视频应当也不是很困难。
+
+#### 其他题目的答案
+
+```C++
+/*
+ * tmin - return minimum two's complement integer
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 4
+ *   Rating: 1
+ */
+int tmin(void)
+{
+    int a = 0x1;
+    return a << 31;
+}
+/*
+ * negate - return -x
+ *   Example: negate(1) = -1.
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 5
+ *   Rating: 2
+ */
+int negate(int x)
+{
+    return ~x + 1;
+}
+/*
+ * isAsciiDigit - return 1 if 0x30 <= x <= 0x39 (ASCII codes for characters '0' to '9')
+ *   Example: isAsciiDigit(0x35) = 1.
+ *            isAsciiDigit(0x3a) = 0.
+ *            isAsciiDigit(0x05) = 0.
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 15
+ *   Rating: 3
+ */
+int isAsciiDigit(int x)
+{
+    int a = 0x30;
+    int b = 0x3A;
+    return (!((x + (~a + 1)) >> 31)) & ((x + (~b + 1)) >> 31);
+}
+/*
+ * conditional - same as x ? y : z 
+ *   Example: conditional(2,4,5) = 4
+ *   Legal ops: ! ~ & ^ | + << >>
+ *   Max ops: 16
+ *   Rating: 3
+ */
+int conditional(int x, int y, int z)
+{
+    int a = !x + ~0x1 + 0x1;
+    return (a & y) | (~a & z);
+}
+/*
+ * logicalNeg - implement the ! operator, using all of
+ *              the legal operators except !
+ *   Examples: logicalNeg(3) = 0, logicalNeg(0) = 1
+ *   Legal ops: ~ & ^ | + << >>
+ *   Max ops: 12
+ *   Rating: 4
+ */
+int logicalNeg(int x)
+{
+    return ((~x & ~(~x + 1)) >> 31) & 0x1;
+}
+/*
+ * floatPower2 - Return bit-level equivalent of the expression 2.0^x
+ *   (2.0 raised to the power x) for any 32-bit integer x.
+ *
+ *   The unsigned value that is returned should have the identical bit
+ *   representation as the single-precision floating-point number 2.0^x.
+ *   If the result is too small to be represented as a denorm, return
+ *   0. If too large, return +INF.
+ *
+ *   Legal ops: Any integer/unsigned operations incl. ||, &&. Also if, while
+ *   Max ops: 30
+ *   Rating: 4
+ */
+unsigned floatPower2(int x)
+{
+    //溢出
+    if (x > 128)
+    {
+        return 0x7F800000;
+    }
+    //太小
+    if (x < -126)
+    {
+        return 0;
+    }
+    //正常情况，加上偏移127
+    return (x + 127) << 23;
+}
+```
+
+个人感觉，datalab中的难题主要在整数一块；float的题目虽然复杂，但思路都比较常规，按部就班即可完成，不像是前面的一些题目比如howManyBits着实需要灵光乍现。
+
+之后我将继续学习后面的内容，下一次的作业将是BombLab，是一个很有意思的'拆炸弹'题，我将在之后发布。

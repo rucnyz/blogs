@@ -359,16 +359,16 @@ int floatFloat2Int(unsigned uf)
         return 0;
     }
     //frac加上默认的1
-    frac += (1 << 24);
-    //小于24，右移
-    if (exp <= 24)
+    frac += (1 << 23);
+    //<=23，右移
+    if (exp <= 23)
     {
-        frac = frac >> (24 - exp);
+        frac = frac >> (23 - exp);
     }
-    //大于24，左移
-    else if (exp <= 30)
+        //>=24，左移
+    else if (exp <= 31)
     {
-        frac = frac << (exp - 23);
+        frac = frac << (exp - 24);
     }
     //如果符号位为1，转负数
     if (sign)

@@ -471,6 +471,11 @@ unsigned floatPower2(int x)
     {
         return 0;
     }
+    //用非规格化数表示
+    if (x < -126)
+    {
+        return 1 << (149 + x);
+    }
     //正常情况，加上偏移127
     return (x + 127) << 23;
 }

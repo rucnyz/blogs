@@ -1,4 +1,5 @@
-# CMU CS:APP3e学习-DataLab
+#! https://zhuanlan.zhihu.com/p/264941063
+# CMU CS:APP3e学习-环境介绍&DataLab
 
 >前提说明：我最近一直在学习CSAPP这门课，听两位教授讲课十分过瘾，也产生了一些心得。而在国庆期间无意看到了[@anarion](https://www.zhihu.com/people/anarion)大佬所写的学习笔记，深有感触，同时发现我和他的学习思路和使用工具(`jetbrains`,`vscode`,`linux`)都非常接近，于是也想把自己的心得和作业思路写成文章，分享在知乎上。
 >我是一名普通的本科生，学这些课程只是出于自己的兴趣。我计划将这门课的学习写成一个专栏，以更加深入地理解课程内容，也算是对自己的一个监督。
@@ -191,7 +192,7 @@ int isLessOrEqual(int x, int y)
     int c = (x >> 31) & 0x1;
     int d = (y >> 31) & 0x1;
     //结果
-    return (a | b | c & !d) & !(!c & d);
+    return (a | b | (c & !d)) & !((!c) & d);
 }
 ```
 
@@ -422,7 +423,7 @@ int isAsciiDigit(int x)
     return (!((x + (~a + 1)) >> 31)) & ((x + (~b + 1)) >> 31);
 }
 /*
- * conditional - same as x ? y : z 
+ * conditional - same as x ? y : z
  *   Example: conditional(2,4,5) = 4
  *   Legal ops: ! ~ & ^ | + << >>
  *   Max ops: 16
